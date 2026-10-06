@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from deepagents import create_deep_agent
@@ -164,7 +165,23 @@ def build_agent(sandbox: Path, mode: str = "single", use_skills: bool = False, m
     if model is None:
         model = make_model()
         if hasattr(model, "max_tokens") and model.max_tokens is None:
-            model.max_tokens = int(os.getenv("LAB_MAX_TOKENS", "2048"))
+            model.max_tokens = int(os.getenv("LAB_MAX_TOKENS", "1024"))
+        if hasattr(model, "_generate"):
+            orig_generate = model._generate
+
+            def _safe_generate(*args, **kwargs):
+                for attempt in range(4):
+                    try:
+                        return orig_generate(*args, **kwargs)
+                    except Exception as exc:
+                        if "402" in str(exc) and attempt < 3:
+                            wait_s = 35 * (attempt + 1)
+                            print(f"\n[402 In-flight Limit] Waiting {wait_s}s for budget settlement (attempt {attempt + 1}/3)...", flush=True)
+                            time.sleep(wait_s)
+                            continue
+                        raise
+
+            model._generate = _safe_generate
 
     return create_deep_agent(
         model=model,

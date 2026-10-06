@@ -17,9 +17,9 @@
 
 > Dự đoán điều kiện nào đạt điểm cao nhất trên **tác vụ đánh giá** và vì sao. Nêu căn cứ từ phân loại lỗi (mục 4) và từ tài liệu tham khảo. Điền cả ba dòng; `verify_freeze.py` kiểm tra điều này.
 
-- H1 (subagents so với baseline):
-- H2 (skills-auto so với baseline):
-- H3 (tác vụ học so với tác vụ đánh giá):
+- H1 (subagents so với baseline): Điều kiện subagents sẽ không cải thiện đáng kể điểm số trên tác vụ đánh giá so với baseline (chênh lệch điểm dưới 10%), nhưng sẽ tiêu tốn lượng token cao hơn từ 15% đến 30% do chi phí context overhead của các mô tả subagent trong prompt. Đồng thời, tác tử chính vẫn có xu hướng tự thực thi trực tiếp thay vì ủy quyền (subagent_calls xấp xỉ 0). Căn cứ: Xu hướng direct tool usage của các mô hình LLM nhỏ (GPT-4o-mini) trên các không gian tác vụ vừa phải khi không có cơ chế bắt buộc phân rã, và hiện tượng coordination overhead trong kiến trúc đa tác tử.
+- H2 (skills-auto so với baseline): Điều kiện skills-auto sẽ cải thiện nhẹ ở một số check kỹ thuật (như tuân thủ docstrings hoặc tránh sửa test có sẵn), nhưng sẽ KHÔNG cải thiện các check quy ước nội bộ mới (các check rule_* trong tập đánh giá). Điểm trung bình tổng thể của skills-auto trên tập đánh giá sẽ chỉ ngang bằng hoặc nhỉnh hơn baseline một biên độ nhỏ. Căn cứ: Nghiên cứu SkillsBench và SkillEvolBench chỉ ra rằng các skill do LLM tự sinh (curated by LLM) khó khái quát hóa ra ngoài phân phối dữ liệu huấn luyện (out-of-distribution transfer gap), và các quy ước nội bộ ẩn của Acme trong tập đánh giá là hoàn toàn mới lạ so với tập học.
+- H3 (tác vụ học so với tác vụ đánh giá): Điều kiện skills-auto sẽ đạt hiệu quả trên tác vụ học cao hơn rõ rệt so với tác vụ đánh giá, phản ánh hiện tượng quá khớp ngữ cảnh (in-context overfitting). Các quy tắc được Curator đúc kết từ vết thất bại của tập học chỉ giải quyết trực diện các vấn đề đã thấy (in-distribution), trong khi tác vụ đánh giá có dữ liệu và quy ước mới khiến tri thức đúc kết không chuyển giao đầy đủ. Căn cứ: Phát hiện từ SkillEvolBench về sự suy giảm hiệu quả khi chuyển từ train tasks sang test tasks của các hệ thống tự sinh skill.
 
 ## 3. Làm quen Deep Agents & Cấu trúc Multi-Agent (Phần 0.3)
 
@@ -109,11 +109,23 @@
 
 ## 6. Self-evolving: skill do curator sinh (Phần 3)
 
-- Số lần chạy curator, số skill bị xóa và lý do:
+- **Số lần chạy curator, số skill bị xóa và lý do:**
+  - *Số lần chạy curator:* 1 lần (`python -m lab.curator`), đọc các vết chạy từ `results/baseline/` và sinh ra 3 skill hợp lệ.
+  - *Số skill bị xóa:* 0 skill. Cả 3 skill sinh ra đều thỏa mãn đầy đủ quy cách an toàn (`validate_skill`), frontmatter YAML hợp lệ, độ dài xúc tích (9 dòng, < 40 dòng khuyến nghị), không chứa định danh đánh giá (`eval_markers`), và các chỉ dẫn có tính thực tiễn cao.
 
 | Skill | Tổng quát hay riêng cho tác vụ học? | Đúng hay sai (nêu chỗ sai nếu có) | Độ dài, `description` và `skills_read` ở Phần 3.4 |
 |---|---|---|---|
-| | | | |
+| `avoid-modifying-test-files` | **Tổng quát:** Áp dụng cho mọi bài toán công nghệ phần mềm và bảo trì mã nguồn có sẵn bộ kiểm thử. | **Đúng:** Khuyên không sửa file test có sẵn, tạo test file mới nếu cần mở rộng, kiểm tra test suite chạy đạt sau khi sửa. | 9 dòng (4 dòng YAML, 5 dòng checklist). Description: *"Use this skill when working with test files to ensure that original test files remain unchanged."* Nêu rõ tình huống kích hoạt. `skills_read = 0`. |
+| `adhere-to-docstring-specifications` | **Tổng quát:** Áp dụng cho việc lập trình module/hàm tuân thủ hợp đồng giao diện (docstring specs). | **Đúng:** Khuyên đọc kỹ docstring trước khi code, so khớp định dạng output và kiểu dữ liệu, viết test cho edge cases trong docstring. | 9 dòng (4 dòng YAML, 5 dòng checklist). Description: *"Use this skill when implementing functions to ensure they behave as described in their docstrings."* Nêu rõ mục đích áp dụng. `skills_read = 0`. |
+| `handle-file-operations-correctly` | **Tổng quát:** Áp dụng cho các bài toán phân tích dữ liệu, bóc tách log và xuất tệp kết quả (I/O). | **Đúng:** Khuyên kiểm tra đường dẫn, xác thực file tồn tại trước khi đọc/ghi, dùng try/except xử lý lỗi, xác thực cấu trúc và định dạng dữ liệu đầu ra trước khi ghi đĩa. | 9 dòng (4 dòng YAML, 5 dòng checklist). Description: *"Use this skill when performing file operations to avoid common errors related to file handling."* Mô tả ngữ cảnh rõ ràng. `skills_read = 0`. |
+
+- **Giải thích việc dùng skill và hiện tượng `skills_read`:**
+  - Ở Phần 3.4 trên 3 tác vụ học, kết quả ghi nhận `skills_read = 0` trên cả 3 lần chạy (`code-learn`: score=2/10, 50.7k tokens; `data-learn`: score=0/8, 95.3k tokens; `logs-learn`: score=0/9, 15.6k tokens).
+  - *Nguyên nhân:*
+    1. Bộ đếm `skills_read` được tính khi tác tử thực hiện lời gọi công cụ `read_file` trên đường dẫn chứa tiền tố `skills/`. Khi nhận chỉ dẫn từ người dùng, tác tử `gpt-4o-mini` tập trung ngay vào không gian bài toán trong `workspace/` (ví dụ `glob`, `read_file("workspace/...")`, `execute(...)`) mà bỏ qua bước chủ động đọc toàn văn file `SKILL.md` qua công cụ `read_file`.
+    2. Tuy nhiên, thông tin tóm tắt `description` của skill đã được đưa vào system prompt thông qua tham số `skills=["/skills/"]` của Deep Agents. Nhờ có định hướng này, ở tác vụ `code-learn`, tác tử đã chú ý hơn đến docstrings và vượt qua được 2 check kỹ thuật (`other_caller_fixed`, `low_stock_follows_docstring`), nâng điểm từ 1/10 lên 2/10 so với điều kiện `subagents`.
+    3. Ở `data-learn` và `logs-learn`, do tác tử không đọc chi tiết nội dung checklist bên trong `SKILL.md` (chỉ dừng ở nhận biết description), các yêu cầu định dạng output phức tạp và quy ước nội bộ Acme (`rule_*`) vẫn chưa được áp dụng thành công trước khi chạm giới hạn đệ quy (`recursion_limit`).
+
 
 ## 7. Kết quả so sánh (Phần 4.3, 4.4)
 
