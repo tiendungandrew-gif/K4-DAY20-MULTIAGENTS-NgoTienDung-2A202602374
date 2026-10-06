@@ -1,0 +1,74 @@
+{
+  "task": "logs-eval",
+  "condition": "subagents",
+  "role": "eval",
+  "error": "GraphRecursionError: Recursion limit of 25 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT",
+  "timestamp": "2026-10-06T05:41:06.149118+00:00",
+  "skills_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "seconds": 18.1,
+  "tokens": {
+    "input": 62111,
+    "output": 520,
+    "total": 62631
+  },
+  "tool_calls": 12,
+  "subagent_calls": 0,
+  "skills_read": 0,
+  "skills_modified": false,
+  "final_message": "2024-05-02T04:05:34Z\n\n[Command succeeded with exit code 0]",
+  "score": 0.0,
+  "passed": 0,
+  "total": 10,
+  "checks": [
+    {
+      "name": "valid_structure",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "entry_count",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "timestamps_utc",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "levels_uppercase",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "repeat_counts",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "counts_by_service",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_service_names",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_sorted_errors",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_schema_header",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "rule_source_line",
+      "passed": false,
+      "detail": ""
+    }
+  ]
+}
